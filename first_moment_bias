@@ -1,0 +1,41 @@
+float radius = chf("r");
+int maxpts   = chi("m");
+
+int pts[] = pcfind(0, "P", v@P, radius, maxpts);
+
+vector delta = 0;
+float wsum = 0;
+float w2sum = 0;
+
+foreach (int pt; pts)
+{
+    vector p = point(0, "P", pt);
+    float dist = distance(v@P, p);
+
+    float w = chramp("bias", fit(dist, 0, radius, 0, 1));
+
+    delta += (p - v@P) * w;
+    wsum  += w;
+    w2sum += w*w;
+}
+
+// Weighted mean direction
+if (wsum > 1e-8)
+{
+    vector mean = delta / wsum;
+
+    // Effective number of contributors (1..len(pts))
+    float neff = (w2sum > 1e-8) ? (wsum*wsum)/w2sum : 0;
+
+    // Map neff to a 0-1-ish density factor (tunable)
+    float dens = clamp(neff / float(maxpts), 0, 1);
+
+    // How much density should matter (0 = pure weighted average)
+    float dens_gain = chf("density_gain"); // e.g. 0..2
+
+    v@P += mean * lerp(1.0, dens, dens_gain);
+    
+    v@Cd = dens;
+}
+
+
